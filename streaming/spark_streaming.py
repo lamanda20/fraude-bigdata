@@ -118,7 +118,7 @@ def process_batch(batch_df, batch_id):
 
             try:
                 response = requests.post(
-                    "http://127.0.0.1:8000/predict",
+                    "http://13.60.199.153:8000/predict",
                     json=transaction
                 )
 
