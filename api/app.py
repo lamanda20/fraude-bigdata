@@ -4,8 +4,7 @@ import joblib
 import numpy as np
 import time
 
-from prometheus_client import Counter, Histogram, Gauge, generate_latest
-from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 
 app = FastAPI(title="Fraud Detection API")
