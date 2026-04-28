@@ -1,13 +1,15 @@
 from fastapi import FastAPI
-from fastapi.responses import Response
 import joblib
 import numpy as np
 import time
 
-from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
-
+from prometheus_client import Counter, Histogram, Gauge, make_asgi_app
 
 app = FastAPI(title="Fraud Detection API")
+
+# 🔥 Monter Prometheus proprement (évite les erreurs)
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 # Charger modèle et scaler
 model = joblib.load("models/fraud_model.pkl")
@@ -21,12 +23,12 @@ EXPECTED_COLUMNS = [
     "V28", "Amount"
 ]
 
-# Variables de monitoring JSON
+# Variables JSON (optionnel)
 total_requests = 0
 fraud_count = 0
 total_latency = 0.0
 
-# Métriques Prometheus
+# 📊 Métriques Prometheus
 REQUEST_COUNT = Counter(
     "fraud_total_transactions",
     "Total number of processed transactions"
@@ -58,8 +60,8 @@ def home():
     return {
         "message": "Fraud Detection API is running",
         "docs": "/docs",
-        "metrics_json": "/metrics-json",
-        "metrics_prometheus": "/metrics"
+        "metrics": "/metrics",
+        "metrics_json": "/metrics-json"
     }
 
 
@@ -78,14 +80,12 @@ def predict(data: dict):
 
         # Prédiction
         proba = model.predict_proba(features)[0][1]
-
-        # Seuil optimisé
         threshold = 0.3
         prediction = int(proba > threshold)
 
         latency = time.time() - start_time
 
-        # Monitoring JSON
+        # JSON metrics
         total_requests += 1
         total_latency += latency
 
@@ -95,7 +95,7 @@ def predict(data: dict):
         avg_latency = total_latency / total_requests if total_requests > 0 else 0
         fraud_rate = fraud_count / total_requests if total_requests > 0 else 0
 
-        # Monitoring Prometheus
+        # Prometheus metrics
         REQUEST_COUNT.inc()
         LATENCY.observe(latency)
         FRAUD_RATE.set(fraud_rate)
@@ -112,9 +112,7 @@ def predict(data: dict):
         }
 
     except Exception as e:
-        return {
-            "error": str(e)
-        }
+        return {"error": str(e)}
 
 
 @app.get("/metrics-json")
@@ -128,10 +126,3 @@ def metrics_json():
         "fraud_rate": fraud_rate,
         "average_latency": avg_latency
     }
-
-@app.get("/metrics")
-def metrics():
-    return Response(
-        content=generate_latest(),
-        media_type=CONTENT_TYPE_LATEST
-    )
