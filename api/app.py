@@ -3,7 +3,9 @@ import joblib
 import numpy as np
 import time
 
-from prometheus_client import Counter, Histogram, Gauge, make_asgi_app
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CollectorRegistry, make_asgi_app
+
+registry = CollectorRegistry()
 
 app = FastAPI(title="Fraud Detection API")
 
